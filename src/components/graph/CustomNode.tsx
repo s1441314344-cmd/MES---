@@ -210,7 +210,7 @@ export const CustomNode = memo(({ id, data, selected, type }: NodeProps<CustomNo
   const outgoingCount = outgoingEdges.length;
 
   // 调试日志：验证 outgoingCount 计算
-  if (process.env.NODE_ENV === 'development' && outgoingCount > 1) {
+  if (import.meta.env.DEV && outgoingCount > 1) {
     console.log(`[CustomNode] Node ${id}: outgoingCount=${outgoingCount}, outgoingEdges:`, outgoingEdges.map(e => ({ id: e.id, target: e.target, sourceHandle: e.sourceHandle })));
   }
 

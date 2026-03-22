@@ -5,7 +5,7 @@ import { Lock, Unlock, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 export function EditLockButton() {
-  const { mode } = useCollabStore();
+  const { mode, connectionStatus } = useCollabStore();
   const { acquireLock, releaseLock, isLocked, isLockedByMe, lockHolder } = useEditLock();
   const [loading, setLoading] = useState(false);
 
@@ -57,8 +57,9 @@ export function EditLockButton() {
       variant="outline"
       size="sm"
       onClick={handleClick}
-      disabled={loading || isLocked}
+      disabled={loading || isLocked || connectionStatus !== 'online'}
       className={`${isLocked ? 'opacity-50 cursor-not-allowed' : ''} text-slate-900`}
+      title={connectionStatus !== 'online' ? '离线模式下不可申请编辑权' : undefined}
     >
       {loading ? (
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

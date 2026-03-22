@@ -13,7 +13,7 @@ import { useHeartbeat } from './hooks/useHeartbeat';
 import { useFieldConfigStore } from './store/useFieldConfigStore';
 
 function App() {
-  const { setUser } = useCollabStore();
+  const { setUser, setConnectionStatus } = useCollabStore();
   const { fetchConfigs } = useFieldConfigStore();
   const socketConnectedRef = useRef(false);
 
@@ -41,21 +41,42 @@ function App() {
 
     setUser(userId, userName);
 
-    // 连接Socket（socketService内部会检查是否已连接）
-    socketService.connect(userId, userName);
-    socketConnectedRef.current = true;
+    setConnectionStatus('checking');
 
-    // 预加载字段配置
-    fetchConfigs().catch(error => {
-      console.error('Failed to load field configs:', error);
-    });
+    const verifyBackend = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1800);
+        const response = await fetch('/api/recipe/lock-status', {
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error('Backend unavailable');
+        }
+
+        socketService.connect(userId!, userName!);
+        socketConnectedRef.current = true;
+        setConnectionStatus('online');
+      } catch (error) {
+        console.warn('Backend unavailable, switching to offline demo mode:', error);
+        setConnectionStatus('offline');
+      }
+
+      fetchConfigs().catch(fetchError => {
+        console.error('Failed to load field configs:', fetchError);
+      });
+    };
+
+    verifyBackend();
 
     // 组件卸载时断开连接
     return () => {
       socketConnectedRef.current = false;
       socketService.disconnect();
     };
-  }, [setUser, fetchConfigs]);
+  }, [setUser, fetchConfigs, setConnectionStatus]);
 
   // Socket同步
   useSocketSync();
@@ -71,22 +92,28 @@ function App() {
       <Group className="h-full w-full" orientation="horizontal">
         {/* Left Panel - Recipe Table */}
         <Panel defaultSize={40} minSize={20}>
-          <div className="h-full w-full border-r bg-slate-50">
+          <div className="h-full w-full border-r border-slate-200/80 bg-[rgba(255,255,255,0.88)] backdrop-blur-sm">
             <RecipeTable />
           </div>
         </Panel>
 
-        <Separator className="w-1 bg-slate-200 hover:bg-blue-500 transition-colors cursor-col-resize" />
+        <Separator className="w-1 bg-slate-200/80 hover:bg-blue-500 transition-colors cursor-col-resize" />
 
         {/* Right Panel - Flow Graph / Gantt View */}
         <Panel defaultSize={60} minSize={20}>
-          <div className="h-full w-full bg-white flex flex-col">
+          <div className="h-full w-full bg-[rgba(255,255,255,0.78)] backdrop-blur-sm flex flex-col">
             <Tabs defaultValue="flow" className="h-full flex flex-col">
-              <div className="border-b px-4 pt-2">
-                <TabsList>
-                  <TabsTrigger value="flow">流程图</TabsTrigger>
-                  <TabsTrigger value="gantt">甘特图</TabsTrigger>
-                </TabsList>
+              <div className="border-b border-slate-200/80 px-5 pt-4 pb-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900">工艺视图工作台</div>
+                    <div className="text-xs text-slate-500">主视图优先用于工艺路线梳理，甘特图用于排程复核</div>
+                  </div>
+                  <TabsList className="bg-slate-100/80">
+                    <TabsTrigger value="flow">流程图主视图</TabsTrigger>
+                    <TabsTrigger value="gantt">甘特排程</TabsTrigger>
+                  </TabsList>
+                </div>
               </div>
               <TabsContent value="flow" className="flex-1 overflow-hidden m-0">
                 <RecipeFlow />

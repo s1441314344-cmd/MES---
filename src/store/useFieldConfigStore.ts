@@ -1,6 +1,28 @@
 import { create } from 'zustand';
 import { FieldConfig, ProcessType } from '../types/fieldConfig';
 import { fieldConfigService } from '../services/fieldConfigService';
+import { PROCESS_TYPE_FIELDS } from '@/types/processTypeConfig';
+import { v4 as uuidv4 } from 'uuid';
+
+const buildFallbackConfigs = (): FieldConfig[] =>
+    Object.entries(PROCESS_TYPE_FIELDS).flatMap(([processType, fields]) =>
+        (fields || []).map((field, index) => ({
+            id: `fallback-${processType}-${field.key}-${uuidv4().slice(0, 8)}`,
+            processType: processType as ProcessType,
+            key: field.key,
+            label: field.label,
+            inputType: field.inputType,
+            unit: field.unit,
+            options: field.options,
+            defaultValue: field.defaultValue,
+            validation: {
+                required: field.required,
+            },
+            sortOrder: index,
+            isSystem: true,
+            enabled: true,
+        }))
+    );
 
 interface FieldConfigState {
     configs: FieldConfig[];
@@ -29,7 +51,12 @@ export const useFieldConfigStore = create<FieldConfigState>((set, get) => ({
             const configs = await fieldConfigService.getAllConfigs();
             set({ configs, isLoading: false, revision: get().revision + 1 });
         } catch (error: any) {
-            set({ error: error.message, isLoading: false });
+            set({
+                configs: buildFallbackConfigs(),
+                error: `${error.message}（已切换到离线字段配置）`,
+                isLoading: false,
+                revision: get().revision + 1,
+            });
         }
     },
 

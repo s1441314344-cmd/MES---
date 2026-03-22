@@ -117,7 +117,7 @@ export function calculateSchedule(
     });
     
     // 对每个设备，按 processes 数组顺序建立串行依赖
-    deviceToProcessSteps.forEach((processSteps, deviceCode) => {
+    deviceToProcessSteps.forEach((processSteps) => {
         // 按 processes 数组顺序排序（保持原始顺序）
         const sortedProcessSteps = processSteps.sort((a, b) => {
             const indexA = processes.findIndex(p => p.id === a.processId);

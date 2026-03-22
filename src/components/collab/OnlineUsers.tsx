@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 
 export function OnlineUsers() {
-  const { onlineUsers, userId } = useCollabStore();
+  const { onlineUsers, userId, connectionStatus } = useCollabStore();
   const [open, setOpen] = useState(false);
 
   return (
@@ -27,7 +27,9 @@ export function OnlineUsers() {
           <DialogTitle>在线用户</DialogTitle>
         </DialogHeader>
         <div className="space-y-2">
-          {onlineUsers.length === 0 ? (
+          {connectionStatus !== 'online' ? (
+            <p className="text-sm text-gray-500">离线演示模式下不显示在线用户。</p>
+          ) : onlineUsers.length === 0 ? (
             <p className="text-sm text-gray-500">暂无在线用户</p>
           ) : (
             onlineUsers.map((user) => (

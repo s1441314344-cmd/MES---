@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { FieldConfig, FieldInputType } from '@/types/fieldConfig';
-import { shouldDisplayField, validateField } from '@/utils/fieldValidator';
+import React, { useState } from 'react';
+import { FieldConfig } from '@/types/fieldConfig';
+import { shouldDisplayField } from '@/utils/fieldValidator';
 import { ArrayField } from './fields/ArrayField';
 import { ObjectField } from './fields/ObjectField';
 import { TextField } from './fields/TextField';

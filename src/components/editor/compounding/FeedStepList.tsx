@@ -22,7 +22,6 @@ interface SortableStepItemProps {
   onSelect: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
-  onInsertAfter: () => void;
   stepId: string;
 }
 
@@ -33,7 +32,6 @@ function SortableStepItem({
   onSelect,
   onDelete,
   onDuplicate,
-  onInsertAfter,
   stepId,
 }: SortableStepItemProps) {
   const {
@@ -177,7 +175,7 @@ export function FeedStepList({
   onSelect,
   onDelete,
   onDuplicate,
-  onInsertAfter,
+  onInsertAfter: _onInsertAfter,
   getStepId,
 }: FeedStepListProps) {
   return (
@@ -191,7 +189,6 @@ export function FeedStepList({
           onSelect={() => onSelect(index)}
           onDelete={() => onDelete(index)}
           onDuplicate={() => onDuplicate(index)}
-          onInsertAfter={() => onInsertAfter(index)}
           stepId={getStepId(index)}
         />
       ))}

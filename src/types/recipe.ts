@@ -509,6 +509,7 @@ export interface RecipeEdge {
   data: {
     sequenceOrder: number; // 投料顺序权重，1 为最优先
     incomingTotal?: number; // 目标节点的入边总数，用于判断是否启用走廊路由
+    outgoingTotal?: number; // 源节点的出边总数，用于判断是否启用扇出走线
   };
   animated?: boolean; // 默认为 true，表示流动方向
   targetHandle?: string; // 目标节点的 handle ID，由布局算法动态分配（如 "target-0", "target-1"）

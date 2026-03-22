@@ -4,7 +4,6 @@ import { DynamicFormRenderer } from '../DynamicFormRenderer';
 import { Label } from '@/components/ui/label';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 interface ObjectFieldProps {
     config: FieldConfig;

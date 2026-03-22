@@ -1,17 +1,18 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useRecipeStore } from '@/store/useRecipeStore';
 import { useCollabStore } from '@/store/useCollabStore';
 import { StatusBar } from '@/components/collab/StatusBar';
 import { DemoModeBanner } from '@/components/collab/DemoModeBanner';
-import { Download, Upload, RotateCcw, Save, Loader2, Settings } from 'lucide-react';
+import { Download, Upload, RotateCcw, Save, Loader2, Settings, Workflow, FlaskConical, Layers3 } from 'lucide-react';
 import { validateRecipeConnections, formatValidationMessage } from '@/utils/recipeValidator';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-  const { exportJSON, importJSON, reset, saveToServer, isSaving } = useRecipeStore();
-  const { mode, userId, isLockedByMe } = useCollabStore();
+  const { exportJSON, importJSON, reset, saveToServer, isSaving, metadata, processes, edges } = useRecipeStore();
+  const { mode, userId, isLockedByMe, connectionStatus } = useCollabStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
 
@@ -95,76 +96,133 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-[radial-gradient(circle_at_top_left,_rgba(31,111,235,0.10),_transparent_28%),linear-gradient(180deg,#f4f7fb_0%,#eef3f9_100%)] text-slate-900">
       {/* Header */}
-      <header className="flex items-center justify-between border-b bg-slate-900 px-6 py-3">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white">MES 工艺流程编辑器</h1>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/config')}
-            className="bg-slate-800 hover:bg-slate-700 text-white border-slate-600"
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            配置
-          </Button>
-        </div>
-        <div className="flex gap-2">
-          {mode === 'edit' && isLockedByMe() && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSave}
-              disabled={saving || isSaving}
-              title="保存到服务器"
-            >
-              {saving || isSaving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
+      <header className="border-b border-slate-200/80 bg-[rgba(14,24,38,0.92)] px-6 py-4 text-white backdrop-blur-xl">
+        <div className="flex items-start justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#1f6feb,#0fa67a)] shadow-lg shadow-blue-950/30">
+                <Layers3 className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-[0.28em] text-slate-400">MES Route Demo</div>
+                <h1 className="text-2xl font-semibold leading-tight">工艺路线总览工作台</h1>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+              <Badge className="border-transparent bg-white/10 text-white">{metadata.name}</Badge>
+              <Badge variant="outline" className="border-white/15 text-slate-200">版本 {metadata.version}</Badge>
+              <Badge variant="outline" className="border-white/15 text-slate-200">{processes.length} 个工艺段</Badge>
+              <Badge variant="outline" className="border-white/15 text-slate-200">{edges.length} 条连接</Badge>
+              <Badge
+                variant="outline"
+                className={connectionStatus === 'offline' ? 'border-amber-300/40 text-amber-100' : 'border-emerald-300/30 text-emerald-100'}
+              >
+                {connectionStatus === 'offline' ? '离线演示模式' : '实时协作已启用'}
+              </Badge>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/config')}
+                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                配置中心
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/workflow-editor')}
+                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                <Workflow className="mr-2 h-4 w-4" />
+                新编排页
+                <Badge className="ml-2 border-transparent bg-amber-400/20 text-amber-100">Experimental</Badge>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/bpmn')}
+                className="text-slate-300 hover:bg-white/10 hover:text-white"
+              >
+                <FlaskConical className="mr-2 h-4 w-4" />
+                BPMN 原型
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex min-w-[320px] flex-col items-end gap-3">
+            <div className="text-right">
+              <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Primary Actions</div>
+              <div className="text-sm text-slate-300">保存和协作动作优先，导入导出降级为次要操作</div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              {mode === 'edit' && isLockedByMe() && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving || isSaving}
+                  title="保存到服务器"
+                  className="border-emerald-300/30 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25"
+                >
+                  {saving || isSaving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  保存当前工艺
+                </Button>
               )}
-              保存
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={mode === 'demo'}
-            title={mode === 'demo' ? '演示模式下请使用"导出演示数据"' : ''}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export JSON
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleImport}
-            disabled={mode !== 'edit'}
-            title={mode !== 'edit' ? '需要编辑权限' : ''}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Import JSON
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={reset}
-            disabled={mode !== 'edit'}
-            title={mode !== 'edit' ? '需要编辑权限' : ''}
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset
-          </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={mode === 'demo'}
+                title={mode === 'demo' ? '演示模式下请使用"导出演示数据"' : ''}
+                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                导出
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleImport}
+                disabled={mode !== 'edit'}
+                title={mode !== 'edit' ? '需要编辑权限' : ''}
+                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                导入
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={reset}
+                disabled={mode !== 'edit'}
+                title={mode !== 'edit' ? '需要编辑权限' : ''}
+                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                重置
+              </Button>
+            </div>
+          </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </header>
 
       {/* Status Bar */}

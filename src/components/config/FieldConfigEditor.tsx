@@ -83,7 +83,7 @@ const INPUT_TYPES: { value: FieldInputType; label: string }[] = [
 
 export const FieldConfigEditor: React.FC = () => {
     const {
-        configs, isLoading, error,
+        configs, error,
         fetchConfigs, addConfig, updateConfig, deleteConfig
     } = useFieldConfigStore();
     const { processes } = useRecipeStore();
@@ -95,7 +95,7 @@ export const FieldConfigEditor: React.FC = () => {
 
     useEffect(() => {
         fetchConfigs();
-    }, []);
+    }, [fetchConfigs]);
 
     const filteredConfigs = useMemo(() => {
         return configs

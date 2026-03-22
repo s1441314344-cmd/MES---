@@ -34,6 +34,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@types/node": "^24.5.2",
     "@types/dagre": "^0.7.52",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",

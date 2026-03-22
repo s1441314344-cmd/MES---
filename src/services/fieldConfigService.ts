@@ -1,22 +1,28 @@
 import { FieldConfig, ProcessType } from '../types/fieldConfig';
 
-const API_BASE = 'http://localhost:3001/api/config/fields';
+const getApiBase = () => {
+    const envBase = (import.meta as ImportMeta & { env?: { VITE_API_BASE?: string } }).env?.VITE_API_BASE;
+    if (envBase) {
+        return `${envBase}/config/fields`;
+    }
+    return '/api/config/fields';
+};
 
 export const fieldConfigService = {
     async getAllConfigs(): Promise<FieldConfig[]> {
-        const response = await fetch(API_BASE);
+        const response = await fetch(getApiBase());
         if (!response.ok) throw new Error('Failed to fetch configs');
         return response.json();
     },
 
     async getConfigsByProcessType(processType: ProcessType): Promise<FieldConfig[]> {
-        const response = await fetch(`${API_BASE}/type/${processType}`);
+        const response = await fetch(`${getApiBase()}/type/${processType}`);
         if (!response.ok) throw new Error('Failed to fetch configs');
         return response.json();
     },
 
     async createConfig(config: Partial<FieldConfig>): Promise<FieldConfig> {
-        const response = await fetch(API_BASE, {
+        const response = await fetch(getApiBase(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(config),
@@ -27,7 +33,7 @@ export const fieldConfigService = {
     },
 
     async updateConfig(id: string, updates: Partial<FieldConfig>): Promise<void> {
-        const response = await fetch(`${API_BASE}/${id}`, {
+        const response = await fetch(`${getApiBase()}/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
@@ -36,14 +42,14 @@ export const fieldConfigService = {
     },
 
     async deleteConfig(id: string): Promise<void> {
-        const response = await fetch(`${API_BASE}/${id}`, {
+        const response = await fetch(`${getApiBase()}/${id}`, {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete config');
     },
 
     async syncDefaults(): Promise<void> {
-        const response = await fetch('http://localhost:3001/api/config/sync', {
+        const response = await fetch('/api/config/sync', {
             method: 'POST',
         });
         if (!response.ok) throw new Error('Failed to sync defaults');

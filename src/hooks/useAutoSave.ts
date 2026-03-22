@@ -5,6 +5,7 @@ import { socketService } from '../services/socketService';
 
 
 const SAVE_DEBOUNCE = 3000; // 3秒防抖
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 /**
  * 计算数据签名（用于判断是否真的发生了业务变更）
@@ -36,14 +37,14 @@ function calculateDataSignature(processes: any[], edges: any[]): string {
 
 export function useAutoSave() {
   const { processes, edges, metadata, version, setSaving, setVersion } = useRecipeStore();
-  const { mode, userId, isEditable } = useCollabStore();
+  const { mode, userId, isEditable, connectionStatus } = useCollabStore();
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedSignatureRef = useRef<string | null>(null);
   const hasInitializedSignatureRef = useRef(false);
 
   useEffect(() => {
     // 只在编辑模式下自动保存
-    if (mode !== 'edit' || !isEditable()) {
+    if (mode !== 'edit' || !isEditable() || connectionStatus === 'offline') {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
@@ -101,7 +102,7 @@ export function useAutoSave() {
         // 获取 socketId，用于服务端排除提交者
         const socketId = socketService.getSocket()?.id || null;
         
-        const response = await fetch('http://localhost:3001/api/recipe', {
+        const response = await fetch(`${API_BASE}/api/recipe`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -137,5 +138,5 @@ export function useAutoSave() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [processes, edges, metadata, version, mode, userId, setSaving, setVersion]);
+  }, [processes, edges, metadata, version, mode, userId, connectionStatus, setSaving, setVersion]);
 }

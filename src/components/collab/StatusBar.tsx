@@ -6,8 +6,8 @@ import { OnlineUsers } from './OnlineUsers';
 import { Eye, Edit, Gamepad2, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 
 export function StatusBar() {
-  const { mode, lockStatus, getOnlineUsersCount, isLockedByMe } = useCollabStore();
-  const { isSaving, metadata } = useRecipeStore();
+  const { mode, lockStatus, getOnlineUsersCount, isLockedByMe, connectionStatus } = useCollabStore();
+  const { isSaving, metadata, processes, edges } = useRecipeStore();
   const onlineCount = getOnlineUsersCount();
 
   const getModeIcon = () => {
@@ -68,10 +68,15 @@ export function StatusBar() {
   const saveStatus = getSaveStatus();
 
   return (
-    <div className="flex items-center justify-between border-b bg-slate-800 px-4 py-2 text-sm text-white">
-      <div className="flex items-center gap-4">
+    <div className="flex items-center justify-between border-b border-slate-200/80 bg-[rgba(255,255,255,0.82)] px-4 py-3 text-sm text-slate-700 backdrop-blur-sm">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-white">
+          <span className={`h-2.5 w-2.5 rounded-full ${connectionStatus === 'online' ? 'bg-emerald-400' : connectionStatus === 'checking' ? 'bg-amber-400' : 'bg-slate-400'}`} />
+          <span>{connectionStatus === 'online' ? '实时协作' : connectionStatus === 'checking' ? '连接检查中' : '离线演示'}</span>
+        </div>
+
         {/* 模式指示 */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
           {getModeIcon()}
           <span className="font-medium">{getModeText()}</span>
         </div>
@@ -88,6 +93,16 @@ export function StatusBar() {
         <div className="flex items-center gap-2">
           <span className="text-slate-400">在线：</span>
           <span className="font-medium">{onlineCount}人</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400">当前配方：</span>
+          <span className="font-medium">{metadata.version}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400">拓扑：</span>
+          <span className="font-medium">{processes.length} 段 / {edges.length} 边</span>
         </div>
 
         {/* 保存状态 */}

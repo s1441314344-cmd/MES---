@@ -484,13 +484,18 @@ export function getProcessTypeName(type: ProcessType): string {
 
     // 尝试从 store 中获取自定义名称（需要动态导入以避免循环依赖）
     try {
-        const { useProcessTypeConfigStore } = require('../store/useProcessTypeConfigStore');
-        const customName = useProcessTypeConfigStore.getState().customTypeNames[type];
-        if (customName) {
-            return customName;
+        if (typeof window !== 'undefined') {
+            const raw = window.localStorage.getItem('process-type-config');
+            if (raw) {
+                const persisted = JSON.parse(raw) as { state?: { customTypeNames?: Record<string, string> } };
+                const customName = persisted.state?.customTypeNames?.[type];
+                if (customName) {
+                    return customName;
+                }
+            }
         }
-    } catch (error) {
-        // Store 可能还未初始化，忽略错误
+    } catch {
+        // 本地缓存可能不存在或格式异常，忽略即可
     }
 
     // 如果都没有，返回类型值本身

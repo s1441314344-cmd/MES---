@@ -1,4 +1,4 @@
-import { Process, SubStep } from '../types/recipe';
+import { Process } from '../types/recipe';
 import { FieldInputType, ProcessType } from '../types/fieldConfig';
 
 export interface ExtractedField {

@@ -10,6 +10,65 @@ interface LayoutControllerProps {
   layoutTrigger: string;
 }
 
+interface EdgeValidationStats {
+  strictEdgeCount: number;
+  invalidEdgeCount: number;
+  maxError: number;
+}
+
+function collectEdgeValidationStats(
+  nodes: FlowNode[],
+  edges: RecipeEdge[],
+  targetEdgeLength: number,
+  tolerance: number
+): EdgeValidationStats {
+  const nodeMap = new Map(nodes.map(node => [node.id, node]));
+  let strictEdgeCount = 0;
+  let invalidEdgeCount = 0;
+  let maxError = 0;
+
+  edges.forEach(edge => {
+    const sourceNode = nodeMap.get(edge.source);
+    const targetNode = nodeMap.get(edge.target);
+
+    if (!sourceNode || !targetNode) {
+      return;
+    }
+
+    const incomingTotal = edge.data?.incomingTotal || 0;
+    const outgoingTotal = edge.data?.outgoingTotal || 0;
+
+    // 汇聚边、扇出边和反向/折返边本身就会采用自适应走线，不适合再用固定垂直间距强约束。
+    const shouldValidateStrictly =
+      incomingTotal <= 1 &&
+      outgoingTotal <= 1 &&
+      targetNode.position.y >= sourceNode.position.y;
+
+    if (!shouldValidateStrictly) {
+      return;
+    }
+
+    strictEdgeCount++;
+
+    const sourceHeight = sourceNode.height || 120;
+    const sourceBottom = sourceNode.position.y + sourceHeight;
+    const targetTop = targetNode.position.y;
+    const actualGap = targetTop - sourceBottom;
+    const error = Math.abs(actualGap - targetEdgeLength);
+
+    if (error > tolerance) {
+      invalidEdgeCount++;
+      maxError = Math.max(maxError, error);
+    }
+  });
+
+  return {
+    strictEdgeCount,
+    invalidEdgeCount,
+    maxError,
+  };
+}
+
 /**
  * LayoutController - Headless Component
  * 
@@ -482,8 +541,9 @@ export function LayoutController({ onLayoutComplete, onNodesUpdate, layoutTrigge
 
       // ========== 步骤4: 校验间距，必要时重排 ==========
       // 使用已定义的 TARGET_EDGE_LENGTH (120)
-      const TOLERANCE = 5; // 允许误差 5px
-      const MAX_ITERATIONS = 3; // 最多重排 3 次
+      const TOLERANCE = 24; // 允许适度弹性，避免为了视觉上已可接受的边距持续抖动
+      const RELAYOUT_THRESHOLD = 40; // 只有误差明显时才触发重排
+      const MAX_ITERATIONS = 1; // 只保留一次兜底重排，优先保证稳定性
 
       // 等待 1-2 帧让 ReactFlow 完成重新测量
       window.requestAnimationFrame(() => {
@@ -492,43 +552,30 @@ export function LayoutController({ onLayoutComplete, onNodesUpdate, layoutTrigge
           const currentNodes = getNodes() as FlowNode[];
           const currentEdges = getEdges() as RecipeEdge[];
 
-          // 校验边间距
-          let maxError = 0;
-          let invalidEdgeCount = 0;
+          const { strictEdgeCount, invalidEdgeCount, maxError } = collectEdgeValidationStats(
+            currentNodes,
+            currentEdges,
+            TARGET_EDGE_LENGTH,
+            TOLERANCE
+          );
 
-          currentEdges.forEach(edge => {
-            const sourceNode = currentNodes.find(n => n.id === edge.source);
-            const targetNode = currentNodes.find(n => n.id === edge.target);
-
-            if (!sourceNode || !targetNode) {
-              return;
-            }
-
-            // 使用默认尺寸，与布局计算阶段保持一致
-            const sourceHeight = sourceNode.height || 120;
-
-            // 计算实际间距
-            const sourceBottom = sourceNode.position.y + sourceHeight;
-            const targetTop = targetNode.position.y;
-            const actualGap = targetTop - sourceBottom;
-            const error = Math.abs(actualGap - TARGET_EDGE_LENGTH);
-
-            if (error > TOLERANCE) {
-              invalidEdgeCount++;
-              maxError = Math.max(maxError, error);
-            }
-          });
+          const maxAllowedInvalidEdges = strictEdgeCount <= 4 ? 0 : 1;
 
           console.log('[LayoutController] 间距校验:', {
             iteration: layoutIterationRef.current,
             totalEdges: currentEdges.length,
+            strictEdges: strictEdgeCount,
             invalidEdges: invalidEdgeCount,
             maxError: maxError.toFixed(1),
             tolerance: TOLERANCE,
           });
 
           // 判断是否需要重排
-          const needsRelayout = invalidEdgeCount > 0 && layoutIterationRef.current < MAX_ITERATIONS;
+          const needsRelayout =
+            strictEdgeCount > 0 &&
+            invalidEdgeCount > maxAllowedInvalidEdges &&
+            maxError > RELAYOUT_THRESHOLD &&
+            layoutIterationRef.current < MAX_ITERATIONS;
 
           if (needsRelayout) {
             console.log(`[LayoutController] 间距不合格，触发第 ${layoutIterationRef.current + 1} 次重排`);
@@ -569,4 +616,3 @@ export function LayoutController({ onLayoutComplete, onNodesUpdate, layoutTrigge
 
   return null; // Headless Component
 }
-

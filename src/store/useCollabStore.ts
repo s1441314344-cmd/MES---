@@ -35,6 +35,7 @@ interface CollabStore {
 
   // 连接状态
   isConnected: boolean;
+  connectionStatus: 'checking' | 'online' | 'offline';
 
   // Actions
   setUser: (userId: string, userName: string) => void;
@@ -44,6 +45,7 @@ interface CollabStore {
   updateOnlineUser: (user: OnlineUser) => void;
   removeOnlineUser: (socketId: string) => void;
   setConnected: (connected: boolean) => void;
+  setConnectionStatus: (status: 'checking' | 'online' | 'offline') => void;
 
   // 计算属性
   isEditable: () => boolean;
@@ -64,6 +66,7 @@ export const useCollabStore = create<CollabStore>((set, get) => ({
   },
   onlineUsers: [],
   isConnected: false,
+  connectionStatus: 'checking',
 
   setUser: (userId, userName) => {
     set({ userId, userName });
@@ -102,6 +105,10 @@ export const useCollabStore = create<CollabStore>((set, get) => ({
 
   setConnected: (isConnected) => {
     set({ isConnected });
+  },
+
+  setConnectionStatus: (connectionStatus) => {
+    set({ connectionStatus, isConnected: connectionStatus === 'online' });
   },
 
   isEditable: () => {

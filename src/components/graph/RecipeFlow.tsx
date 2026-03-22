@@ -7,7 +7,7 @@ import ReactFlow, {
   Edge,
   ConnectionMode,
   ReactFlowInstance,
-  NodeChange,
+  type NodeChange,
   useUpdateNodeInternals,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -61,7 +61,7 @@ export function RecipeFlow() {
   const fieldConfigRevision = useFieldConfigStore(state => state.revision); // 字段配置版本号
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
   const [layoutReady, setLayoutReady] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const layoutReadyRef = useRef(false);
   
   // 位置表：作为权威的位置来源（Map<nodeId, position>）
@@ -402,4 +402,3 @@ export function RecipeFlow() {
     </div>
   );
 }
-

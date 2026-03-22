@@ -4,6 +4,8 @@ import { useCollabStore } from '../store/useCollabStore';
 import { useRecipeStore } from '../store/useRecipeStore';
 import { RecipeSchema } from '../types/recipe';
 
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
 export function useDemoMode() {
   const { mode, setMode } = useCollabStore();
   const { processes, edges, metadata, exportJSON, syncFromServer } = useRecipeStore();
@@ -26,7 +28,7 @@ export function useDemoMode() {
   const exitDemoMode = async () => {
     // 从服务器重新加载最新数据
     try {
-      const response = await fetch('http://localhost:3001/api/recipe');
+      const response = await fetch(`${API_BASE}/api/recipe`);
       if (response.ok) {
         const recipe = await response.json();
         syncFromServer(recipe, recipe.version || 1);

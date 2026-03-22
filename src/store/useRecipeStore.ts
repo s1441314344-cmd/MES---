@@ -6,7 +6,10 @@ import { ScheduleResult } from '../types/scheduling'; // ScheduleResult is a typ
 import { defaultDevicePool } from '../data/devicePool';
 import { useMemo } from 'react';
 import { socketService } from '../services/socketService';
+import { useCollabStore } from './useCollabStore';
 import { duplicateSubStepInProcess, moveSubStepBetweenProcesses } from '../utils/subStepOps';
+
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 interface RecipeStore {
   // 主数据结构：工艺段列表
@@ -563,6 +566,7 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
   saveToServer: async (userId?: string) => {
     const state = get();
     state.setSaving(true);
+    const { connectionStatus } = useCollabStore.getState();
 
     console.log('[保存] 开始保存到服务器...', {
       userId,
@@ -573,6 +577,12 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
     // 检查 userId 是否存在
     if (!userId) {
       console.error('[保存] 错误:缺少 userId');
+      state.setSaving(false);
+      return false;
+    }
+
+    if (connectionStatus === 'offline') {
+      console.warn('[保存] 当前为离线演示模式，跳过服务器保存');
       state.setSaving(false);
       return false;
     }
@@ -594,7 +604,7 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
       // 获取 socketId，用于服务端排除提交者
       const socketId = socketService.getSocket()?.id || null;
 
-      const response = await fetch('http://localhost:3001/api/recipe', {
+      const response = await fetch(`${API_BASE}/api/recipe`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -823,6 +833,7 @@ export const useFlowEdges = (): RecipeEdge[] => {
       // Logic for Target Handle (unchanged)
       const incomingEdges = nodeIncomingEdges.get(edge.target) || [];
       let targetHandle: string | undefined;
+      let incomingIndex = 0;
 
       if (incomingEdges.length > 1) {
         const sortedInEdges = [...incomingEdges].sort((a, b) => {
@@ -831,12 +842,16 @@ export const useFlowEdges = (): RecipeEdge[] => {
           return orderA - orderB;
         });
         const handleIndex = sortedInEdges.findIndex(e => e.id === edge.id);
-        if (handleIndex >= 0) targetHandle = `target-${handleIndex}`;
+        if (handleIndex >= 0) {
+          targetHandle = `target-${handleIndex}`;
+          incomingIndex = handleIndex;
+        }
       }
 
       // Logic for Source Handle (new)
       const outgoingEdges = nodeOutgoingEdges.get(edge.source) || [];
       let sourceHandle: string | undefined;
+      let outgoingIndex = 0;
 
       if (outgoingEdges.length > 1) {
         // Sort outgoing edges by target node's process index
@@ -862,8 +877,9 @@ export const useFlowEdges = (): RecipeEdge[] => {
         const handleIndex = sortedOutEdges.findIndex(e => e.id === edge.id);
         if (handleIndex >= 0) {
           sourceHandle = `source-${handleIndex}`;
+          outgoingIndex = handleIndex;
           // 调试日志：验证 sourceHandle 分配
-          if (process.env.NODE_ENV === 'development') {
+          if (import.meta.env.DEV) {
             console.log(`[SourceHandle] Edge ${edge.id}: source=${edge.source}, outgoingCount=${outgoingEdges.length}, handleIndex=${handleIndex}, sourceHandle=${sourceHandle}`);
           }
         }
@@ -931,6 +947,9 @@ export const useFlowEdges = (): RecipeEdge[] => {
         data: {
           ...edge.data,
           incomingTotal,
+          incomingIndex,
+          outgoingIndex,
+          outgoingTotal: outgoingEdges.length,
           isEditingDashed,
         },
         targetHandle,

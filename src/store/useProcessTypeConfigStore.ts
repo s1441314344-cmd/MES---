@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ProcessType, ProcessTypes } from '../types/recipe';
+import { useRecipeStore } from './useRecipeStore';
 import {
     SubStepTemplate,
     ProcessSegmentTemplate,
@@ -153,8 +154,6 @@ export const useProcessTypeConfigStore = create<ProcessTypeConfigStore>()(
             },
 
             isTypeInUse: (type) => {
-                // 动态导入 useRecipeStore 以避免循环依赖
-                const { useRecipeStore } = require('./useRecipeStore');
                 const processes = useRecipeStore.getState().processes;
                 const locations: string[] = [];
 

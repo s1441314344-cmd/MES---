@@ -7,10 +7,22 @@ import {
 } from 'reactflow';
 
 // 走廊路由参数
-const CORRIDOR_CLEARANCE_PX = 60; // 走廊距离目标节点的净空
-const MIN_TARGET_CLEARANCE_PX = 24; // 最小目标节点净空
-const MIN_SOURCE_DROP_PX = 12; // 最小源节点下降距离
-const CORNER_RADIUS = 20; // 拐角圆角半径
+const CORRIDOR_CLEARANCE_PX = 60;
+const MIN_TARGET_CLEARANCE_PX = 24;
+const MIN_SOURCE_DROP_PX = 12;
+const CORNER_RADIUS = 20;
+const FAN_IN_LANE_GAP = 14;
+const FAN_OUT_SPREAD = 16;
+
+function generateSequencePath(sourceX: number, sourceY: number, targetX: number, targetY: number): string {
+  const deltaY = Math.max(36, targetY - sourceY);
+  const curvature = Math.min(48, deltaY * 0.35);
+
+  return [
+    `M ${sourceX} ${sourceY}`,
+    `C ${sourceX} ${sourceY + curvature}, ${targetX} ${targetY - curvature}, ${targetX} ${targetY}`,
+  ].join(' ');
+}
 
 /**
  * 生成走廊路径（三段式：垂直-水平-垂直）
@@ -20,7 +32,9 @@ function generateCorridorPath(
   sourceX: number,
   sourceY: number,
   targetX: number,
-  targetY: number
+  targetY: number,
+  incomingIndex: number,
+  incomingTotal: number
 ): string {
   // 计算走廊Y坐标
   let corridorY = targetY - CORRIDOR_CLEARANCE_PX;
@@ -60,22 +74,19 @@ function generateCorridorPath(
     ? sourceX + effectiveCornerRadius
     : sourceX - effectiveCornerRadius;
 
-  // 3. 水平移动到目标X附近（留出圆角空间）
-  const cornerX2 = isTargetRight
-    ? targetX - effectiveCornerRadius
-    : targetX + effectiveCornerRadius;
-
-  // 4. 圆角过渡到垂直段
+  // 3. 圆角过渡到垂直段
   const verticalRiseStartY = corridorY + effectiveCornerRadius;
 
-  // 构建完整路径
+  const centeredIndex = incomingIndex - (incomingTotal - 1) / 2;
+  const targetLaneX = targetX + centeredIndex * FAN_IN_LANE_GAP;
+
   const path = [
-    `M ${sourceX} ${sourceY}`,                    // 起点
-    `L ${sourceX} ${verticalDropEndY}`,           // 垂直下降
-    `Q ${sourceX} ${corridorY} ${cornerX1} ${corridorY}`, // 圆角1
-    `L ${cornerX2} ${corridorY}`,                 // 水平移动
-    `Q ${targetX} ${corridorY} ${targetX} ${verticalRiseStartY}`, // 圆角2
-    `L ${targetX} ${targetY}`,                    // 垂直上升
+    `M ${sourceX} ${sourceY}`,
+    `L ${sourceX} ${verticalDropEndY}`,
+    `Q ${sourceX} ${corridorY} ${cornerX1} ${corridorY}`,
+    `L ${targetLaneX} ${corridorY}`,
+    `Q ${targetX} ${corridorY} ${targetX} ${verticalRiseStartY}`,
+    `L ${targetX} ${targetY}`,
   ].join(' ');
 
   return path;
@@ -95,27 +106,39 @@ export const SequenceEdge = memo(
   }: EdgeProps) => {
     // 判断是否使用走廊路由
     const incomingTotal = data?.incomingTotal;
+    const incomingIndex = data?.incomingIndex || 0;
+    const outgoingIndex = data?.outgoingIndex || 0;
+    const outgoingTotal = data?.outgoingTotal || 0;
     const useCorridor = incomingTotal !== undefined && incomingTotal > 1;
 
     // 根据路由模式生成路径
     const edgePath = useMemo(() => {
       if (useCorridor) {
         // 使用走廊路径
-        return generateCorridorPath(sourceX, sourceY, targetX, targetY);
-      } else {
-        // 使用默认平滑路径
-        const [path] = getSmoothStepPath({
-          sourceX,
-          sourceY,
-          sourcePosition,
-          targetX,
-          targetY,
-          targetPosition,
-          borderRadius: 20,
-        });
-        return path;
+        return generateCorridorPath(sourceX, sourceY, targetX, targetY, incomingIndex, incomingTotal);
       }
-    }, [useCorridor, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
+
+      if (outgoingTotal > 1) {
+        const centeredIndex = outgoingIndex - (outgoingTotal - 1) / 2;
+        const startX = sourceX + centeredIndex * FAN_OUT_SPREAD;
+        return generateSequencePath(startX, sourceY, targetX, targetY);
+      }
+
+      if (Math.abs(targetX - sourceX) <= 8) {
+        return generateSequencePath(sourceX, sourceY, targetX, targetY);
+      }
+
+      const [path] = getSmoothStepPath({
+        sourceX,
+        sourceY,
+        sourcePosition,
+        targetX,
+        targetY,
+        targetPosition,
+        borderRadius: 20,
+      });
+      return path;
+    }, [useCorridor, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, incomingIndex, incomingTotal, outgoingIndex, outgoingTotal]);
 
     // 计算靠近终点 (Target) 的位置
     // badgeX 必须精确等于 targetX (锚点 X 坐标)
@@ -129,17 +152,17 @@ export const SequenceEdge = memo(
     // 根据编辑态决定样式
     const edgeStyle = useMemo(() => {
       const baseStyle: { stroke: string; strokeWidth: number; strokeDasharray?: string; opacity?: number } = {
-        stroke: '#9ca3af',
-        strokeWidth: 2,
+        stroke: useCorridor ? '#0FA67A' : '#94a3b8',
+        strokeWidth: useCorridor ? 2.4 : 2,
       };
 
       if (isEditingDashed) {
         baseStyle.strokeDasharray = '6 6';
-        baseStyle.opacity = 0.7; // 稍微降低不透明度以突出编辑态
+        baseStyle.opacity = 0.8;
       }
 
       return baseStyle;
-    }, [isEditingDashed]);
+    }, [isEditingDashed, useCorridor]);
 
     return (
       <>

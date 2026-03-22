@@ -1,7 +1,6 @@
 import { useMemo, useEffect, useRef } from 'react';
-import { useReactFlow, Edge } from 'reactflow';
-import { useFlowNodes, useFlowEdges } from '@/store/useRecipeStore';
-import { useRecipeStore } from '@/store/useRecipeStore';
+import { useReactFlow } from 'reactflow';
+import { useFlowEdges } from '@/store/useRecipeStore';
 
 /**
  * 调试标签接口
@@ -267,4 +266,3 @@ export function toggleDebugMode(): boolean {
   localStorage.setItem('debug_layout', String(newValue));
   return newValue;
 }
-

@@ -148,7 +148,7 @@ export function identifyProcessSegments(
 
         // 如果目标节点有多个入边，说明是另一个汇聚点，停止
         const targetIncoming = incomingEdges.get(targetId) || [];
-        if (targetIncoming.length > 1 && targetId !== convergenceNode.id) {
+        if (targetIncoming.length > 1 && convergenceNode && targetId !== convergenceNode.id) {
           continue;
         }
 
@@ -209,4 +209,3 @@ export function identifyProcessSegments(
     serialSegments,
   };
 }
-

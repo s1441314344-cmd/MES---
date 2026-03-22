@@ -1,7 +1,6 @@
 import {
   SubStep,
   Process,
-  RecipeEdge,
   CompoundingParams,
   CompoundingFeedStep,
   CompoundingAdditive,
@@ -146,7 +145,7 @@ export function deriveAdditivesFromFeedSteps(
  */
 export function normalizeCompoundingFeedSteps(
   subStep: SubStep,
-  processes: Process[]
+  _processes: Process[]
 ): CompoundingFeedStep[] {
   if (subStep.processType !== ProcessType.COMPOUNDING) {
     return [];
